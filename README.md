@@ -1,6 +1,8 @@
 ## Compute-Usage-Report
 AWS Lambda base tool for generate cost and usage reports
 
+![usage-report](https://user-images.githubusercontent.com/44127516/193476719-04bc41b2-3bc4-4286-baee-5824ceadcc8e.jpg)
+
 ### Create assume-role in associate accounts
 - Cretae role in each aws account that required to assume from master aws account.
 - Select trusted entity as master account ID.
