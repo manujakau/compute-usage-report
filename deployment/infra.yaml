@@ -81,3 +81,24 @@ Resources:
       Type: "String"
       Value: !Ref UsageReportTopic01
     DependsOn: UsageReportTopic01
+
+  SNScodebuildLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Usage Report
+      Runtime: python3.9
+      Timeout: 10
+      Handler: index.lambda_handler
+      Role: !GetAtt UsageReportLambdaRole01.Arn
+      Environment:
+        Variables:
+          aws_accounts: "{{resolve:ssm:/usage-report/accounts/list}}"
+          asumerole_name: "{{resolve:ssm:/usage-report/accounts/asumerole}}"
+          primary_region: "{{resolve:ssm:/usage-report/accounts/region}}"
+      Code:
+        ZipFile:
+          !Sub
+            - |-
+
+            - lambda_function_role_arn: !Ref UsageReportLambdaRole01
+    DependsOn: UsageReportTopic01Arn
