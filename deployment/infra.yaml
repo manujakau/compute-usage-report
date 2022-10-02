@@ -115,6 +115,7 @@ Resources:
               assumerole = os.environ['asumerole_name']
               region = os.environ['primary_region']
 
+
               def assume_role(account,accounts,assumerole):
                   global access_key
                   global secret_key
