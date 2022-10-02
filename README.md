@@ -25,6 +25,12 @@ AWS Lambda base tool for generate cost and usage reports
 
 ### Cloudformation deployment
 - Clone Repository and navigate into deployment directory.
+- Update ssm parameters before deploy. 
+    - ParentRegion : default region.
+    - UsageReportBucket : archive bucket.
+    - UsageReportAccountList : string separeated using coma of associate account ids (ex: "111122223333,444455556666").
+    - UsageReportCrossAccountAssumeRole : assumerole name from associate accounts.
+    - UsageReportDestinationEmail : recipient email address.
 - Use deploy commandline to deploy each stack.
 ```
 cd deployment/
