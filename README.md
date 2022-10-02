@@ -34,6 +34,8 @@ AWS Lambda base tool for generate cost and usage reports
     - UsageReportCrossAccountAssumeRole : assumerole name from associate accounts.
     - UsageReportDestinationEmail : recipient email address.
 - Use deploy commandline to deploy each stack.
+    - Create env stack first in order to import required parameters.
+    - Then create infra stack.
 ```
 cd deployment/
 ./deploy [preferd-stack-name-here] [stack-to-deploy(env/infra)] [stack-action(create/update)]
