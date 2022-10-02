@@ -30,3 +30,37 @@ Resources:
                 - !Ref UsageReportS3
                 - /*
             Principal: '*'
+
+  UsageReportLambdaRole01:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: "/"
+  
+  UsageReportLambdaPolicies01:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:*'
+              - 'ce:*'
+              - 'ssm:*'
+              - 'ses:*'
+              - 'sns:*'
+              - 'cloudwatch:*'
+              - 'logs:*'
+              - 's3:*'
+            Resource: '*'
+      Roles:
+        - !Ref UsageReportLambdaRole01
