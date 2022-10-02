@@ -1,0 +1,40 @@
+#!/bin/bash
+STACK_NAME=$1
+ENV=$2
+ACTION=$3
+
+create_stack() {
+    echo "Creating Cloud Formation stack $STACK_NAME"
+    STACK_ID=$( \
+    aws cloudformation create-stack \
+        --stack-name $STACK_NAME \
+        --capabilities CAPABILITY_IAM \
+        --template-body file://${ENV}.yaml | jq -r .StackId )
+
+    echo "${STACK_ID} create on-progress..."
+    aws cloudformation wait stack-create-complete --stack-name ${STACK_ID}
+    aws cloudformation describe-stacks --stack-name $STACK_NAME | jq .Stacks[0].StackStatus | tr -d '"'
+}
+
+update_stack() {
+    echo "Updating Cloud Formation stack $STACK_NAME"
+    aws cloudformation update-stack \
+        --stack-name $STACK_NAME \
+        --capabilities CAPABILITY_IAM \
+        --template-body file://${ENV}.yaml
+
+    read -p "Press Ctrl-C to abort or enter to execute update.... " -n1 -s
+    echo ""
+    echo "${STACK_NAME} update on-progress..."
+    aws cloudformation wait stack-update-complete --stack-name ${STACK_NAME}
+    aws cloudformation describe-stacks --stack-name $STACK_NAME | jq .Stacks[0].StackStatus | tr -d '"'
+}
+
+
+if [ $ACTION == "create" ] ; then
+    create_stack
+elif [ $ACTION == "update" ] ; then
+    update_stack
+else 
+    echo "unexpected request"
+fi
