@@ -22,3 +22,13 @@ AWS Lambda base tool for generate cost and usage reports
     ]
 }
 ```
+
+### Cloudformation deployment
+- Clone Repository and navigate into deployment directory.
+- Use deploy commandline to deploy each stack.
+```
+cd deployment/
+./deploy [preferd-stack-name-here] [stack-to-deploy(env/infra)] [stack-action(create/update)]
+
+ex: ./deploy report-env env create
+```
