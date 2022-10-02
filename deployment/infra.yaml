@@ -64,3 +64,20 @@ Resources:
             Resource: '*'
       Roles:
         - !Ref UsageReportLambdaRole01
+
+  UsageReportTopic01:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: usage-report-topic
+      TopicName: usage-report-topic
+      Subscription:
+      - Endpoint: "{{resolve:ssm:/usage-report/email/usage-destination-address}}"
+        Protocol: email
+
+  UsageReportTopic01Arn:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/usage-report/topic/arn"
+      Type: "String"
+      Value: !Ref UsageReportTopic01
+    DependsOn: UsageReportTopic01
