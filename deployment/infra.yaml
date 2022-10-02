@@ -2,3 +2,31 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: 'Usage Report Notification'
 
+Resources:
+  UsageReportS3:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: "{{resolve:ssm:/usage-report/s3/backup-bucket:1}}"
+      LifecycleConfiguration:
+        Rules:
+          - Id: BackupRetention
+            ExpirationInDays: 14
+            Status: Enabled
+
+  UsageReportS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UsageReportS3
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: Allow
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref UsageReportS3
+                - /*
+            Principal: '*'
