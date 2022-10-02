@@ -99,7 +99,174 @@ Resources:
         ZipFile:
           !Sub
             - |-
+              import boto3
+              import datetime, csv
+              import os, zipfile
 
+              PRESENT_DATE = datetime.datetime.utcnow()
+              START_DATE = (PRESENT_DATE - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+              END_DATE = PRESENT_DATE.strftime('%Y-%m-%d')
+
+              FILENAME = ('compute_usage_' + END_DATE + '.csv')
+              HEADERS = ['GenerateOn', 'LinkedAccount', 'Service', 'Amount', 'Unit', 'Estimated']
+
+              list_of_aacounts = os.environ['aws_accounts']
+              accounts = list_of_aacounts.split(",")
+              assumerole = os.environ['asumerole_name']
+              region = os.environ['primary_region']
+
+              def assume_role(account,accounts,assumerole):
+                  global access_key
+                  global secret_key
+                  global session_token
+                  global client
+                  print(f"Initating assume role for account : {account}")
+                  sts = boto3.client('sts')
+                  role_arn = f"{account}:role/{assumerole}"
+                  print(role_arn)
+                  response = sts.assume_role(DurationSeconds=900,RoleArn=f"arn:aws:iam::{role_arn}",RoleSessionName='UsageTest')
+                  access_key = response['Credentials']['AccessKeyId']
+                  secret_key = response['Credentials']['SecretAccessKey']
+                  session_token = response['Credentials']['SessionToken']
+                  print(f"Access key = {access_key}")
+
+
+              def get_response(ce):
+                  response = []
+                  token = None
+                  while True:
+                      if token:
+                          kwargs = {'NextPageToken': token}
+                      else:
+                          kwargs = {}
+                      data = ce.get_cost_and_usage(
+                          TimePeriod = {
+                              'Start': START_DATE, 
+                              'End':  END_DATE
+                          },
+                          Granularity='MONTHLY', 
+                          Metrics = [
+                              'UnblendedCost'
+                          ],
+                          GroupBy = [
+                              {
+                                  'Type': 'DIMENSION', 
+                                  'Key': 'SERVICE'
+                                  },
+                              {
+                                  'Type': 'TAG', 
+                                  'Key': 'Name'
+                                  }
+                          ],
+                          **kwargs)
+                      response += data['ResultsByTime']
+                      token = data.get('NextPageToken')
+                      if not token:
+                          break
+                  return response
+
+
+              def record_response(account_response, file, owner):
+                  with open(file, 'w', newline='') as csvFile:
+                      writer = csv.writer(csvFile, dialect='excel')
+                      writer.writerow(HEADERS)
+                      response = account_response
+                      for data in response:
+                          for group in data['Groups']:
+                              if "Amazon Elastic Compute Cloud - Compute" in group['Keys']  or "Amazon Relational Database Service" in group['Keys']:
+                                  DATE_TILL = data['TimePeriod'].get('End', 'NULL')
+                                  OWNER_ID = owner
+                                  AMOUNT = group['Metrics']['UnblendedCost'].get('Amount', 'NULL')
+                                  UNIT = group['Metrics']['UnblendedCost'].get('Unit', 'NULL')
+                                  DEVICE_NAME = group.get('Keys', 'NULL')
+                                  ESTIMATED = data.get('Estimated', 'NULL')
+
+                                  RAW = [
+                                      DATE_TILL,
+                                      OWNER_ID,
+                                      DEVICE_NAME,
+                                      AMOUNT,
+                                      UNIT,
+                                      ESTIMATED
+                                  ]
+
+                                  writer.writerow(RAW)
+
+
+              def zip_directory(tmp_folder_path, tmp_zip_path, filter):
+                  with zipfile.ZipFile(tmp_zip_path, mode='w') as zipfiles:
+                      len_dir_path = len(tmp_folder_path)
+                      for root_dir, _, files in os.walk(tmp_folder_path):
+                          for file in files:
+                              if filter(file):
+                                  file_path = os.path.join(root_dir, file)
+                                  zipfiles.write(file_path, file_path[len_dir_path:])
+
+
+              def lambda_handler(event, context):
+                  global ce
+                  global headers
+                  invoke_account = 0
+                  headers = 0
+                  
+                  client = boto3.client("sts")
+                  account_id = client.get_caller_identity()["Account"]
+                  s3=boto3.client("s3")
+                  ssm = boto3.client("ssm")
+                  sns = boto3.client('sns')
+                  for account in accounts:
+                      invoke_account += 1
+                      print(f"Processing account : {invoke_account}")
+                      if account != account_id:
+                          assume_role(account,accounts,assumerole)
+                          ce = boto3.client('ce',aws_access_key_id=access_key,aws_secret_access_key=secret_key,aws_session_token=session_token,region_name='eu-central-1')
+                          filename = "/tmp/" + account + '_' + FILENAME
+                          record_response(get_response(ce), filename, account)
+                          if invoke_account == 1:
+                              record_response(get_response(ce), filename, account)
+                      else:
+                          print(f"account {account}")
+                          ce = boto3.client('ce')
+                          filename = "/tmp/" + account + '_' + FILENAME
+                          record_response(get_response(ce), filename, account)
+                          if invoke_account == 1:
+                              record_response(get_response(ce), filename, account)
+
+                  ARCHIVE = END_DATE + "_usage.zip"
+                  zip_directory("/tmp/", "/tmp/" + ARCHIVE, lambda name : 'csv' in name)
+
+                  ssm_s3_bucket = ssm.get_parameter(
+                                  Name='/usage-report/s3/backup-bucket',
+                                  WithDecryption=True)
+                  S3_BUCKET = ssm_s3_bucket['Parameter']['Value']
+                  
+                  s3.upload_file("/tmp/" + ARCHIVE, S3_BUCKET, ARCHIVE)
+
+                  ## presign url face dificulties with signature validation when generate by lambda
+                  # OBJECT_URL = s3.generate_presigned_url(
+                  #                     'get_object',
+                  #                     Params = {
+                  #                         'Bucket': S3_BUCKET,
+                  #                         'Key': ARCHIVE
+                  #                     },
+                  #                     ExpiresIn = 3600)
+                  ## end of presign url
+
+                  ## temporary workarround is to use object uri allowed via bucket policy
+                  OBJECT_URL = "https://" + S3_BUCKET + ".s3." + region + ".amazonaws.com/" + ARCHIVE
+                  ## end of object uri
+
+                  SUBJECT = "Usage Report As Of: {date}".format(date=END_DATE)
+                  BODY = "Please use provide URL for download usage report: {download}".format(download=OBJECT_URL)
+                  sns_source = ssm.get_parameter(
+                      Name='/usage-report/topic/arn',
+                      WithDecryption=True)
+                  sns_topic = sns_source['Parameter']['Value']
+                  sns.publish(
+                      TopicArn=sns_topic,
+                      Subject=SUBJECT,
+                      Message=BODY
+                  )
             - lambda_function_role_arn: !Ref UsageReportLambdaRole01
     DependsOn: UsageReportTopic01Arn
 
