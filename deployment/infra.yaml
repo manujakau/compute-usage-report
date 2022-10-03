@@ -220,7 +220,8 @@ Resources:
                       print(f"Processing account : {invoke_account}")
                       if account != account_id:
                           assume_role(account,accounts,assumerole)
-                          ce = boto3.client('ce',aws_access_key_id=access_key,aws_secret_access_key=secret_key,aws_session_token=session_token,region_name='eu-central-1')
+                          ce = boto3.client('ce',aws_access_key_id=access_key,aws_secret_access_key=secret_key,
+                                            aws_session_token=session_token,region_name=region)
                           filename = "/tmp/" + account + '_' + FILENAME
                           record_response(get_response(ce), filename, account)
                           if invoke_account == 1:
