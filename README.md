@@ -30,11 +30,12 @@ AWS Lambda base tool for generate cost and usage reports
 - Update ssm parameters before deploy. 
     - ParentRegion : default region.
     - UsageReportBucket : archive bucket.
-    - UsageReportAccountList : string separeated using coma of associate account ids (ex: "111122223333,444455556666").
+    - UsageReportAccountList : string separeated using coma of master and associate account ids (ex: "111122223333,444455556666").
     - UsageReportCrossAccountAssumeRole : assumerole name from associate accounts.
     - UsageReportDestinationEmail : recipient email address.
 - Use deploy commandline to deploy each stack.
     - Create env stack first in order to import required parameters.
+    - Update event time as preferd in EventSNScodebuildLambdaFunction (infra.yaml, line-279)
     - Then create infra stack.
 ```
 cd deployment/
