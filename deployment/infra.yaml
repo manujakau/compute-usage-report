@@ -82,7 +82,7 @@ Resources:
       Value: !Ref UsageReportTopic01
     DependsOn: UsageReportTopic01
 
-  SNScodebuildLambdaFunction:
+  UsageReportLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Description: Usage Report
@@ -272,7 +272,7 @@ Resources:
             - lambda_function_role_arn: !Ref UsageReportLambdaRole01
     DependsOn: UsageReportTopic01Arn
 
-  EventSNScodebuildLambdaFunction:
+  EventUsageReportLambdaFunction:
     Type: AWS::Events::Rule
     Properties: 
       Description: "Triggers cost & usage Report"
@@ -280,15 +280,15 @@ Resources:
       ScheduleExpression: "cron(0 2 ? * MON-FRI *)"
       State: ENABLED
       Targets:
-        - Arn: !GetAtt SNScodebuildLambdaFunction.Arn
+        - Arn: !GetAtt UsageReportLambdaFunction.Arn
           Id: usage-report-trigger-01
 
-  ProcessPermissionForS3SortLambda:
+  ProcessPermissionForUsageReportLambda:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - EventSNScodebuildLambdaFunction
+      - EventUsageReportLambdaFunction
     Properties:
       Action: "lambda:InvokeFunction"
-      FunctionName: !Ref SNScodebuildLambdaFunction
+      FunctionName: !Ref UsageReportLambdaFunction
       Principal: events.amazonaws.com
-      SourceArn: !GetAtt EventSNScodebuildLambdaFunction.Arn
+      SourceArn: !GetAtt EventUsageReportLambdaFunction.Arn
