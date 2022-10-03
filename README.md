@@ -37,6 +37,7 @@ AWS Lambda base tool for generate cost and usage reports
     - Create env stack first in order to import required parameters.
     - Update event time as preferd in EventSNScodebuildLambdaFunction (infra.yaml, line-279)
     - Then create infra stack.
+    - Accept aws sns subcription request.
 ```
 cd deployment/
 ./deploy [preferd-stack-name-here] [stack-to-deploy(env/infra)] [stack-action(create/update)]
