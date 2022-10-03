@@ -43,4 +43,5 @@ cd deployment/
 ./deploy [preferd-stack-name-here] [stack-to-deploy(env/infra)] [stack-action(create/update)]
 
 ex: ./deploy report-env env create
+    ./deploy report-infra infra create
 ```
