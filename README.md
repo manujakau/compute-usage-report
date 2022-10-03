@@ -35,7 +35,7 @@ AWS Lambda base tool for generate cost and usage reports
     - UsageReportDestinationEmail : recipient email address.
 - Use deploy commandline to deploy each stack.
     - Create env stack first in order to import required parameters.
-    - Update event time as preferred in EventSNScodebuildLambdaFunction (infra.yaml, line-279)
+    - Update event time as preferred in EventSNScodebuildLambdaFunction (infra.yaml, line-280)
     - Then create infra stack.
     - Accept aws sns subscription request.
 ```
